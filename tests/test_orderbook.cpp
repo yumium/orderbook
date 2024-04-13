@@ -116,6 +116,24 @@ TEST(OrderBookTest, OrderBookModifyOrderTest) {
   EXPECT_EQ(orderBook.Size(), 2);
 }
 
+TEST(OrderBookTest, OrderBookFillOrKillTest) {
+  Orderbook orderBook;
+  orderBook.AddOrder(std::make_shared<Order>(OrderType::GoodTillCancel, 1, Side::Buy, 100, 10));
+  orderBook.AddOrder(std::make_shared<Order>(OrderType::GoodTillCancel, 2, Side::Sell, 120, 10));
+  orderBook.AddOrder(std::make_shared<Order>(OrderType::GoodTillCancel, 3, Side::Sell, 110, 12));
+  orderBook.AddOrder(std::make_shared<Order>(OrderType::FillOrKill, 4, Side::Buy, 120, 20));
+  EXPECT_EQ(orderBook.Size(), 2);
+}
+
+TEST(OrderBookTest, OrderBookFillOrKillCannotFillTest) {
+  Orderbook orderBook;
+  orderBook.AddOrder(std::make_shared<Order>(OrderType::GoodTillCancel, 1, Side::Buy, 100, 10));
+  orderBook.AddOrder(std::make_shared<Order>(OrderType::GoodTillCancel, 2, Side::Sell, 120, 10));
+  orderBook.AddOrder(std::make_shared<Order>(OrderType::GoodTillCancel, 3, Side::Sell, 110, 12));
+  orderBook.AddOrder(std::make_shared<Order>(OrderType::FillOrKill, 4, Side::Buy, 105, 20));
+  EXPECT_EQ(orderBook.Size(), 3);
+}
+
 int main(int argc, char **argv) {
   testing::InitGoogleTest(&argc, argv);
   // Runs all tests

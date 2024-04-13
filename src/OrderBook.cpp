@@ -21,6 +21,42 @@ bool Orderbook::CanMatch(Side side, Price price) const
     }
 }
 
+bool Orderbook::CanFill(Side side, Price price, Quantity quantity) const
+{
+    if (!CanMatch(side, price))
+        return false;
+
+    long remaining = quantity;
+
+    if (side == Side::Buy)
+    {
+        auto iter = asks_.begin();
+        while (quantity > 0 && iter != asks_.end() && iter->first <= price) {
+            OrderPointers ps = iter->second;
+            for (auto it = ps.begin(); it != ps.end(); ++it) {
+                remaining -= (*it)->GetRemainingQuantity();
+            }
+            iter++;
+        }
+
+        return remaining <= 0;
+    }
+    else
+    {
+        auto iter = bids_.begin();
+        while (quantity > 0 && iter != bids_.end() && iter->first >= price) {
+            OrderPointers ps = iter->second;
+            for (auto it = ps.begin(); it != ps.end(); ++it) {
+                remaining -= (*it)->GetRemainingQuantity();
+            }
+            iter++;
+        }
+
+        return remaining <= 0;
+    }
+
+}
+
 Trades Orderbook::MatchOrders()
 {
     Trades trades;
@@ -45,16 +81,20 @@ Trades Orderbook::MatchOrders()
         bid->Fill(quantity);
         ask->Fill(quantity);
 
+        trades.push_back(Trade{ 
+            TradeInfo{bid->GetOrderId(), bid->GetPrice(), quantity },
+            TradeInfo{ask->GetOrderId(), ask->GetPrice(), quantity }});
+
         if (bid->isFilled())
         {
-            bids.pop_front();
             orders_.erase(bid->GetOrderId());
+            bids.pop_front();
         }
 
         if (ask->isFilled())
         {
-            asks.pop_front();
             orders_.erase(ask->GetOrderId());
+            asks.pop_front();
         }
 
         if (bids.empty())
@@ -62,10 +102,6 @@ Trades Orderbook::MatchOrders()
         
         if (asks.empty())
             asks_.erase(askPrice);
-
-        trades.push_back(Trade{ 
-            TradeInfo{bid->GetOrderId(), bid->GetPrice(), quantity },
-            TradeInfo{ask->GetOrderId(), ask->GetPrice(), quantity }});
     }
 
     // Pre: FillAndKill orders can only be added if they can be matched
@@ -96,7 +132,10 @@ Trades Orderbook::AddOrder(OrderPointer order)
     
     if (order->GetOrderType() == OrderType::FillAndKill && !CanMatch(order->GetSide(), order->GetPrice()))
         return { };
-    
+
+    if (order->GetOrderType() == OrderType::FillOrKill && !CanFill(order->GetSide(), order->GetPrice(), order->GetRemainingQuantity()))
+        return { };
+
     OrderPointers::iterator iterator;
 
     if (order->GetSide() == Side::Buy)

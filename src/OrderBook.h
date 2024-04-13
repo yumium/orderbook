@@ -28,6 +28,7 @@ private:
     std::map<OrderId, OrderEntry> orders_;
 
     bool CanMatch(Side side, Price price) const;
+    bool CanFill(Side side, Price price, Quantity quantity) const;
     Trades MatchOrders();
 
 public:
