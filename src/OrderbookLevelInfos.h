@@ -10,7 +10,6 @@ public:
         , asks_ { asks }
     { }
 
-    // What do all these `const` do?
     const LevelInfos& GetBids() const { return bids_; }
     const LevelInfos& GetAsks() const { return asks_; }
 

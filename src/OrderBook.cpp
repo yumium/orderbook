@@ -37,41 +37,39 @@ Trades Orderbook::MatchOrders()
         if (bidPrice < askPrice)
             break;
         
-        while (bids.size() && asks.size())
+        auto& bid = bids.front();
+        auto& ask = asks.front();
+
+        Quantity quantity = std::min(bid->GetRemainingQuantity(), ask->GetRemainingQuantity());
+
+        bid->Fill(quantity);
+        ask->Fill(quantity);
+
+        if (bid->isFilled())
         {
-            auto& bid = bids.front();
-            auto& ask = asks.front();
-
-            Quantity quantity = std::min(bid->GetRemainingQuantity(), ask->GetRemainingQuantity());
-
-            bid->Fill(quantity);
-            ask->Fill(quantity);
-
-            if (bid->isFilled())
-            {
-                bids.pop_front();
-                orders_.erase(bid->GetOrderId());
-            }
-
-            if (ask->isFilled())
-            {
-                asks.pop_front();
-                orders_.erase(ask->GetOrderId());
-            }
-
-            if (bids.empty())
-                bids_.erase(bidPrice);
-            
-            if (asks.empty())
-                asks_.erase(askPrice);
-
-            trades.push_back(Trade{ 
-                TradeInfo{bid->GetOrderId(), bid->GetPrice(), quantity },
-                TradeInfo{ask->GetOrderId(), ask->GetPrice(), quantity }});
-
+            bids.pop_front();
+            orders_.erase(bid->GetOrderId());
         }
+
+        if (ask->isFilled())
+        {
+            asks.pop_front();
+            orders_.erase(ask->GetOrderId());
+        }
+
+        if (bids.empty())
+            bids_.erase(bidPrice);
+        
+        if (asks.empty())
+            asks_.erase(askPrice);
+
+        trades.push_back(Trade{ 
+            TradeInfo{bid->GetOrderId(), bid->GetPrice(), quantity },
+            TradeInfo{ask->GetOrderId(), ask->GetPrice(), quantity }});
     }
 
+    // Pre: FillAndKill orders can only be added if they can be matched
+    // This part removes FillAndKill orders that are just added but may have remaining quantity
     if (!bids_.empty())
     {
         auto& [_, bids] = *bids_.begin();
@@ -103,7 +101,7 @@ Trades Orderbook::AddOrder(OrderPointer order)
 
     if (order->GetSide() == Side::Buy)
     {
-        auto& orders = asks_[order->GetPrice()];
+        auto& orders = bids_[order->GetPrice()];
         orders.push_back(order);
         iterator = std::next(orders.begin(), orders.size() - 1);
     }
@@ -146,7 +144,6 @@ void Orderbook::CancelOrder(OrderId orderId)
 
 Trades Orderbook::ModifyOrder(OrderModify order)
 {
-    // if (!(orders_.count(order.GetOrderId()) > 0))
     if (!orders_.contains(order.GetOrderId()))
         return { };
     

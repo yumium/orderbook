@@ -31,11 +31,16 @@ private:
     Trades MatchOrders();
 
 public:
-
+    /* Adds order `order` and performs any matching possible */
     Trades AddOrder(OrderPointer order);
+
+    /* Cancels order with `orderId`. No op if `orderId` does not exist in the order book */
     void CancelOrder(OrderId orderId);
+
+    /* Modifies order `order` and performs any matching possible. No op if the order ID does not exist in the order book */
     Trades ModifyOrder(OrderModify order);
 
+    /* Returns number of orders in the order book */    
     std::size_t Size() const;
     OrderbookLevelInfos GetOrderInfos() const;
 };

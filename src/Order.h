@@ -16,7 +16,7 @@ public:
         , side_ { side }
         , price_ { price }
         , initialQuantity_ { quantity }
-        , remainingQuantity_ { quantity }
+        , remainingQuantity_ { quantity } // 0 <= remainingQuantity_ <= initialQuantity_
     { }
 
     OrderId GetOrderId() const { return orderId_; }
@@ -26,7 +26,7 @@ public:
     Quantity GetInitialQuantity() const { return initialQuantity_; }
     Quantity GetRemainingQuantity() const { return remainingQuantity_; }
     Quantity GetFilledQuantity() const { return GetInitialQuantity() - GetRemainingQuantity(); }
-    bool isFilled () const { return GetRemainingQuantity(); };
+    bool isFilled () const { return GetRemainingQuantity() == 0; };
     void Fill(Quantity quantity)
     {
         if (quantity > GetRemainingQuantity())
